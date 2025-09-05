@@ -1,2 +1,3 @@
 srt
 requests
+python-dotenv

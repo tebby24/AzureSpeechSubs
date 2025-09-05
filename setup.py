@@ -6,6 +6,7 @@ setup(
     install_requires=[
         "srt",
         "requests",
+        "python-dotenv"
     ],
     author="Teddy Gonyea",
     description="A tool to generate speech with synchronized subtitles using Azure Cognitive Services.",
