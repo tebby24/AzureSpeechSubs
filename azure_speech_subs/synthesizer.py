@@ -6,6 +6,7 @@ import zipfile
 import json
 import srt
 from datetime import timedelta
+import shutil
 
 class SpeechSynthesizer:
     def __init__(self, azure_speech_key, azure_speech_region):
@@ -89,14 +90,14 @@ class SpeechSynthesizer:
         # Extract files
         extracted_files = {}
         with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-            zip_ref.extractall(output_directory)
             for filename in zip_ref.namelist():
                 if filename.endswith('.wav'):
+                    zip_ref.extract(filename, output_directory)
                     extracted_files['audio'] = os.path.join(output_directory, filename)
                 elif filename.endswith('.word.json'):
+                    zip_ref.extract(filename, output_directory)
                     extracted_files['word_boundaries'] = os.path.join(output_directory, filename)
-                elif filename == 'summary.json':
-                    extracted_files['summary'] = os.path.join(output_directory, filename)
+                # Skip summary.json and other unnecessary files
         
         # Clean up ZIP file
         os.remove(zip_path)
@@ -117,21 +118,30 @@ class SpeechSynthesizer:
             offset = token.get("AudioOffset") or token.get("audiooffset")
             duration = token.get("Duration") or token.get("duration")
 
-            if (start_time == None):
+            if start_time is None:
                 start_time = offset
 
             current_sub += text
 
-            if (text[-1] in split_characters):
+            if text and text[-1] in split_characters:
                 group = {
-                    "text": current_sub,
+                    "text": current_sub.strip(),
                     "start": start_time,
-                    "end": offset+duration
+                    "end": offset + duration
                 }
                 groups.append(group)
 
                 current_sub = ""
                 start_time = None
+        
+        # Handle any remaining text that doesn't end with split characters
+        if current_sub.strip() and start_time is not None:
+            group = {
+                "text": current_sub.strip(),
+                "start": start_time,
+                "end": offset + duration if 'offset' in locals() and 'duration' in locals() else start_time + 1000
+            }
+            groups.append(group)
             
         return groups
             
@@ -149,4 +159,61 @@ class SpeechSynthesizer:
 
         with open(srt_filepath, "w", encoding="utf-8") as f:
             f.write(srt_content)
+
+    def generate_speech_with_subtitles(self, text, voice, output_directory, split_characters=".!?"):
+        """
+        Complete pipeline to generate speech with subtitles
+        
+        Args:
+            text (str): Text to synthesize
+            voice (str): Voice name (e.g., 'en-US-JennyNeural')
+            output_directory (str): Directory to save output files
+            split_characters (str): Characters to split subtitles on
+            
+        Returns:
+            dict: Contains paths to audio.wav, words.json, and transcript.srt
+        """
+        try:
+            # Step 1: Synthesize speech and get raw files
+            raw_files = self.synthesize_speech(text, voice, output_directory)
+            
+            # Step 2: Load word boundaries
+            with open(raw_files['word_boundaries'], 'r', encoding='utf-8') as f:
+                word_boundaries = json.load(f)
+            
+            # Step 3: Build subtitle groups
+            groups = self.build_groups(word_boundaries, split_characters)
+            
+            # Step 4: Define final output paths
+            final_audio_path = os.path.join(output_directory, "audio.wav")
+            final_words_path = os.path.join(output_directory, "words.json")
+            final_srt_path = os.path.join(output_directory, "transcript.srt")
+            
+            # Step 5: Rename audio file
+            if 'audio' in raw_files:
+                shutil.move(raw_files['audio'], final_audio_path)
+            
+            # Step 6: Copy and rename word boundaries file
+            if 'word_boundaries' in raw_files:
+                shutil.copy2(raw_files['word_boundaries'], final_words_path)
+                os.remove(raw_files['word_boundaries'])
+            
+            # Step 7: Generate and save SRT file
+            self.save_subs(groups, final_srt_path)
+            
+            # No need to clean up summary.json since we don't extract it
+            
+            return {
+                'audio': final_audio_path,
+                'words': final_words_path,
+                'transcript': final_srt_path
+            }
+            
+        except Exception as e:
+            # Clean up any partial files on error
+            for filename in ['audio.wav', 'words.json', 'transcript.srt']:
+                filepath = os.path.join(output_directory, filename)
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+            raise e
 
