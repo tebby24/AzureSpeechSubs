@@ -4,6 +4,8 @@ import time
 import uuid
 import zipfile
 import json
+import srt
+from datetime import timedelta
 
 class SpeechSynthesizer:
     def __init__(self, azure_speech_key, azure_speech_region):
@@ -104,4 +106,47 @@ class SpeechSynthesizer:
         # Note: We don't raise_for_status() here as cleanup failure shouldn't break the main flow
         
         return extracted_files
+
+    def build_groups(self, word_boundaries, split_characters):
+        groups = []        
+        start_time = None
+
+        current_sub = ""
+        for token in word_boundaries:
+            text = token.get("Text") or token.get("text")
+            offset = token.get("AudioOffset") or token.get("audiooffset")
+            duration = token.get("Duration") or token.get("duration")
+
+            if (start_time == None):
+                start_time = offset
+
+            current_sub += text
+
+            if (text[-1] in split_characters):
+                group = {
+                    "text": current_sub,
+                    "start": start_time,
+                    "end": offset+duration
+                }
+                groups.append(group)
+
+                current_sub = ""
+                start_time = None
+            
+        return groups
+            
+    def save_subs(self, groups, srt_filepath):
+        subs = []
+        for i, group in enumerate(groups):
+            start = timedelta(milliseconds=group["start"])
+            end = timedelta(milliseconds=group["end"])
+            content = group["text"]
+
+            sub = srt.Subtitle(index=i+1, start=start, end=end, content=content)
+            subs.append(sub)
+
+        srt_content = srt.compose(subs)
+
+        with open(srt_filepath, "w", encoding="utf-8") as f:
+            f.write(srt_content)
 
