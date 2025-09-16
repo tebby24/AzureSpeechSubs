@@ -11,7 +11,7 @@ result = synth.generate_speech_with_subtitles(
     text="Hello world. This is a test.",
     voice="en-US-JennyNeural",
     output_directory="./output",
-    split_characters=".!?"
+    split_characters=[".", ",", "?", "\""]
 )
 print(result)  # {'audio': ..., 'words': ..., 'transcript': ...}
 ```
