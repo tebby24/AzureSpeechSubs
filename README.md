@@ -26,7 +26,7 @@ Find voices by browsing the [Azure Voice Gallery](https://speech.microsoft.com/p
 
 ### Subtitle Splitting
 
-The Azure TTS api only provides word level timestamps, so we have to combine them into larger subtitles based on the split_characters provided to generate_speech_with_subtitles. We only split if the last character in the word level timestamp appears in split_characters. This way we avoid splitting on open parentheses.  
+The Azure TTS api only provides word level timestamps, so we have to combine them into larger subtitles based on the split_characters provided to generate_speech_with_subtitles. We only split if the last character in the word level timestamp appears in split_characters. This way we avoid splitting on opening quotation marks.  
 
 ### Related Projects
 https://github.com/hesic73/SpeechSynthSubs
