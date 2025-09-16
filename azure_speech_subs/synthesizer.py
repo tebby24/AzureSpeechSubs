@@ -160,7 +160,7 @@ class SpeechSynthesizer:
         with open(srt_filepath, "w", encoding="utf-8") as f:
             f.write(srt_content)
 
-    def generate_speech_with_subtitles(self, text, voice, output_directory, split_characters=".!?"):
+    def generate_speech_with_subtitles(self, text, voice, output_directory, split_characters):
         """
         Complete pipeline to generate speech with subtitles
         
