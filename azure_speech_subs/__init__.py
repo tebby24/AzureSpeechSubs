@@ -1,1 +1,1 @@
-from .synthesizer import *
+from .synthesizer import SpeechSynthesizer 
