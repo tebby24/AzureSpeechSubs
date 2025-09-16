@@ -21,7 +21,7 @@ This will generate:
 - `words.json`: word-level timing info
 - `transcript.srt`: subtitle file
 
-You can get your Azure Speech API key and region from the Azure Portal by creating a Speech resource. 
+You can get an API key and region from the Azure Portal by creating a Speech resource. 
 Find voices by browsing the [Azure Voice Gallery](https://speech.microsoft.com/portal/voicegallery).
 
 ### Subtitle Splitting
