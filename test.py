@@ -2,7 +2,7 @@ from dotenv import load_dotenv
 import os
 import json
 
-from azure_speech_subs.synthesizer import SpeechSynthesizer
+from azure_speech_subs import SpeechSynthesizer
 
 
 
