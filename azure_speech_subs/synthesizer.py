@@ -113,15 +113,30 @@ class SpeechSynthesizer:
         start_time = None
 
         current_sub = ""
+        last_offset = None
+        last_duration = None
+        
         for token in word_boundaries:
             text = token.get("Text") or token.get("text")
-            offset = token.get("AudioOffset") or token.get("audiooffset")
-            duration = token.get("Duration") or token.get("duration")
+            # Fix: Handle the case where Duration might be 0
+            offset = token.get("AudioOffset")
+            if offset is None:
+                offset = token.get("audiooffset")
+                
+            duration = token.get("Duration")
+            if duration is None:
+                duration = token.get("duration")
 
             if start_time is None:
                 start_time = offset
 
             current_sub += text
+            
+            # Keep track of the last valid offset and duration
+            if offset is not None:
+                last_offset = offset
+            if duration is not None:
+                last_duration = duration
 
             if text and text[-1] in split_characters:
                 group = {
@@ -133,16 +148,22 @@ class SpeechSynthesizer:
 
                 current_sub = ""
                 start_time = None
-        
+
         # Handle any remaining text that doesn't end with split characters
         if current_sub.strip() and start_time is not None:
+            # Use the last valid offset and duration if available
+            if last_offset is not None and last_duration is not None:
+                end_time = last_offset + last_duration
+            else:
+                end_time = start_time + 1000
+                
             group = {
                 "text": current_sub.strip(),
                 "start": start_time,
-                "end": offset + duration if 'offset' in locals() and 'duration' in locals() else start_time + 1000
+                "end": end_time
             }
             groups.append(group)
-            
+        
         return groups
             
     def save_subs(self, groups, srt_filepath):
